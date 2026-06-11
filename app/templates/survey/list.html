@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}浏览问卷 - 在线问卷系统{% endblock %}
+{% block content %}
+<h2 class="mb-4">公开问卷</h2>
+
+{% if surveys %}
+<div class="row">
+    {% for survey in surveys %}
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100 survey-card">
+            <div class="card-body">
+                <h5 class="card-title">{{ survey.title }}</h5>
+                <p class="card-text text-muted">{{ survey.description[:100] }}{% if survey.description|length > 100 %}...{% endif %}</p>
+                <p class="card-text"><small class="text-muted">发布者：{{ survey.author.username }} | {{ survey.created_at.strftime('%Y-%m-%d') }}</small></p>
+                {% if survey.end_time %}
+                <p class="card-text"><small class="text-muted">截止：{{ survey.end_time.strftime('%Y-%m-%d %H:%M') }}</small></p>
+                {% endif %}
+                <p class="card-text"><small class="text-muted">已收集 {{ survey.responses.count() }} 份回答</small></p>
+            </div>
+            <div class="card-footer bg-transparent">
+                {% if survey.is_active() %}
+                <a href="{{ url_for('response.fill', survey_id=survey.id) }}" class="btn btn-primary btn-sm">立即填写</a>
+                {% if survey.end_time %}
+                <small class="text-muted ms-2">截止于 {{ survey.end_time.strftime('%Y-%m-%d %H:%M') }}</small>
+                {% endif %}
+                {% elif survey.start_time and survey.start_time > now %}
+                <span class="badge bg-info">未开始</span>
+                <small class="text-muted ms-2">{{ survey.start_time.strftime('%Y-%m-%d %H:%M') }} 开始</small>
+                {% else %}
+                <span class="badge bg-secondary">已截止</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if pagination.pages > 1 %}
+<nav>
+    <ul class="pagination justify-content-center">
+        {% if pagination.has_prev %}
+        <li class="page-item"><a class="page-link" href="?page={{ pagination.prev_num }}">上一页</a></li>
+        {% endif %}
+        {% for p in pagination.iter_pages() %}
+        {% if p %}
+        <li class="page-item {% if p == pagination.page %}active{% endif %}">
+            <a class="page-link" href="?page={{ p }}">{{ p }}</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">...</span></li>
+        {% endif %}
+        {% endfor %}
+        {% if pagination.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ pagination.next_num }}">下一页</a></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+{% else %}
+<div class="text-center text-muted py-5">
+    <p>暂无公开问卷</p>
+</div>
+{% endif %}
+{% endblock %}

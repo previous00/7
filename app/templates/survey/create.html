@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}创建问卷 - 在线问卷系统{% endblock %}
+{% block content %}
+<h2 class="mb-4">创建问卷</h2>
+
+<form method="POST" id="surveyForm">
+    {{ form.hidden_tag() }}
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">基本信息</h5>
+            <div class="mb-3">
+                {{ form.title.label(class="form-label") }}
+                {{ form.title(class="form-control") }}
+                {% for error in form.title.errors %}
+                <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+            </div>
+            <div class="mb-3">
+                {{ form.description.label(class="form-label") }}
+                {{ form.description(class="form-control", rows=3) }}
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    {{ form.start_time.label(class="form-label") }}
+                    {{ form.start_time(class="form-control") }}
+                </div>
+                <div class="col-md-6 mb-3">
+                    {{ form.end_time.label(class="form-label") }}
+                    {{ form.end_time(class="form-control") }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="questions-container"></div>
+
+    <div class="mb-4">
+        <button type="button" class="btn btn-outline-primary" onclick="addQuestion()">+ 添加题目</button>
+    </div>
+
+    <div class="d-grid gap-2 d-md-flex">
+        {{ form.submit(class="btn btn-primary") }}
+        <a href="{{ url_for('survey.my_surveys') }}" class="btn btn-secondary">取消</a>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let questionIndex = 0;
+
+function addQuestion(data) {
+    const container = document.getElementById('questions-container');
+    const idx = questionIndex++;
+    const qType = data ? data.type : 'single';
+    const qText = data ? data.text : '';
+    const qRequired = data ? data.required : true;
+
+    const card = document.createElement('div');
+    card.className = 'card mb-3 question-card';
+    card.id = `question-${idx}`;
+    card.innerHTML = `
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0">题目 ${idx + 1}</h6>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeQuestion(${idx})">删除</button>
+            </div>
+            <div class="mb-3">
+                <input type="text" class="form-control" name="questions[${idx}][text]" placeholder="请输入题目内容" value="${qText}" required>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <select class="form-select" name="questions[${idx}][type]" onchange="onTypeChange(${idx}, this.value)">
+                        <option value="single" ${qType === 'single' ? 'selected' : ''}>单选题</option>
+                        <option value="multiple" ${qType === 'multiple' ? 'selected' : ''}>多选题</option>
+                        <option value="text" ${qType === 'text' ? 'selected' : ''}>文本题</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-check mt-2">
+                        <input type="checkbox" class="form-check-input" name="questions[${idx}][required]" ${qRequired ? 'checked' : ''}>
+                        <label class="form-check-label">必填</label>
+                    </div>
+                </div>
+            </div>
+            <div class="options-container" id="options-${idx}" style="${qType === 'text' ? 'display:none' : ''}">
+                <label class="form-label">选项</label>
+                <div class="options-list" id="options-list-${idx}"></div>
+                <button type="button" class="btn btn-sm btn-outline-secondary mt-2" onclick="addOption(${idx})">+ 添加选项</button>
+            </div>
+        </div>
+    `;
+    container.appendChild(card);
+
+    if (data && data.options) {
+        data.options.forEach(opt => addOption(idx, opt));
+    } else if (qType !== 'text') {
+        addOption(idx);
+        addOption(idx);
+    }
+}
+
+function removeQuestion(idx) {
+    const card = document.getElementById(`question-${idx}`);
+    if (card) card.remove();
+}
+
+function onTypeChange(idx, type) {
+    const optContainer = document.getElementById(`options-${idx}`);
+    if (type === 'text') {
+        optContainer.style.display = 'none';
+    } else {
+        optContainer.style.display = '';
+        const list = document.getElementById(`options-list-${idx}`);
+        if (list.children.length === 0) {
+            addOption(idx);
+            addOption(idx);
+        }
+    }
+}
+
+let optionCounters = {};
+
+function addOption(qIdx, value) {
+    if (!optionCounters[qIdx]) optionCounters[qIdx] = 0;
+    const optIdx = optionCounters[qIdx]++;
+    const list = document.getElementById(`options-list-${qIdx}`);
+    const div = document.createElement('div');
+    div.className = 'input-group mb-2';
+    div.id = `option-${qIdx}-${optIdx}`;
+    div.innerHTML = `
+        <input type="text" class="form-control" name="questions[${qIdx}][options][${optIdx}]" placeholder="选项内容" value="${value || ''}">
+        <button type="button" class="btn btn-outline-danger" onclick="removeOption(${qIdx}, ${optIdx})">×</button>
+    `;
+    list.appendChild(div);
+}
+
+function removeOption(qIdx, optIdx) {
+    const div = document.getElementById(`option-${qIdx}-${optIdx}`);
+    if (div) div.remove();
+}
+
+addQuestion();
+
+document.getElementById('surveyForm').addEventListener('submit', function(e) {
+    const startTime = document.querySelector('input[name="start_time"]').value;
+    const endTime = document.querySelector('input[name="end_time"]').value;
+    if (startTime && new Date(startTime) < new Date()) {
+        e.preventDefault();
+        alert('开始时间不能早于当前时间');
+        return;
+    }
+    if (startTime && endTime && new Date(endTime) <= new Date(startTime)) {
+        e.preventDefault();
+        alert('结束时间必须晚于开始时间');
+        return;
+    }
+    if (endTime && !startTime && new Date(endTime) < new Date()) {
+        e.preventDefault();
+        alert('结束时间不能早于当前时间');
+        return;
+    }
+});
+</script>
+{% endblock %}

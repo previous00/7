@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}管理后台 - 在线问卷系统{% endblock %}
+{% block content %}
+<h2 class="mb-4">管理后台</h2>
+
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h1 class="display-4 text-primary">{{ user_count }}</h1>
+                <p class="card-text">注册用户</p>
+                <a href="{{ url_for('admin.users') }}" class="btn btn-outline-primary btn-sm">管理用户</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h1 class="display-4 text-success">{{ survey_count }}</h1>
+                <p class="card-text">问卷总数</p>
+                <a href="{{ url_for('admin.surveys') }}" class="btn btn-outline-success btn-sm">管理问卷</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h1 class="display-4 text-info">{{ response_count }}</h1>
+                <p class="card-text">回答总数</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

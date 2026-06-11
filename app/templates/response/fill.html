@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}填写问卷 - {{ survey.title }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h3>{{ survey.title }}</h3>
+                {% if survey.description %}
+                <p class="text-muted">{{ survey.description }}</p>
+                {% endif %}
+                <small class="text-muted">发布者：{{ survey.author.username }}</small>
+                {% if survey.end_time %}
+                <br><small class="text-muted">截止时间：{{ survey.end_time.strftime('%Y-%m-%d %H:%M') }}</small>
+                {% endif %}
+            </div>
+        </div>
+
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            {% for question in questions %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h6>
+                        {{ loop.index }}. {{ question.question_text }}
+                        {% if question.required %}<span class="text-danger">*</span>{% endif %}
+                        {% if question.question_type == 'single' %}
+                        <span class="badge bg-info">单选</span>
+                        {% elif question.question_type == 'multiple' %}
+                        <span class="badge bg-info">多选</span>
+                        {% else %}
+                        <span class="badge bg-info">文本</span>
+                        {% endif %}
+                    </h6>
+
+                    {% if question.question_type == 'single' %}
+                    {% for option in question.options %}
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="question_{{ question.id }}" value="{{ option.id }}" id="opt_{{ option.id }}">
+                        <label class="form-check-label" for="opt_{{ option.id }}">{{ option.option_text }}</label>
+                    </div>
+                    {% endfor %}
+
+                    {% elif question.question_type == 'multiple' %}
+                    {% for option in question.options %}
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="question_{{ question.id }}" value="{{ option.id }}" id="opt_{{ option.id }}">
+                        <label class="form-check-label" for="opt_{{ option.id }}">{{ option.option_text }}</label>
+                    </div>
+                    {% endfor %}
+
+                    {% elif question.question_type == 'text' %}
+                    <textarea class="form-control" name="question_{{ question.id }}" rows="3" placeholder="请输入您的回答"></textarea>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <button type="submit" class="btn btn-primary btn-lg">提交问卷</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

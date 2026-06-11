@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}问卷管理 - 管理后台{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>问卷管理</h2>
+    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">返回后台</a>
+</div>
+
+<div class="mb-3">
+    <a href="{{ url_for('admin.surveys') }}" class="btn btn-sm {% if not status_filter %}btn-primary{% else %}btn-outline-primary{% endif %}">全部</a>
+    <a href="{{ url_for('admin.surveys', status='draft') }}" class="btn btn-sm {% if status_filter == 'draft' %}btn-secondary{% else %}btn-outline-secondary{% endif %}">草稿</a>
+    <a href="{{ url_for('admin.surveys', status='published') }}" class="btn btn-sm {% if status_filter == 'published' %}btn-success{% else %}btn-outline-success{% endif %}">已发布</a>
+    <a href="{{ url_for('admin.surveys', status='closed') }}" class="btn btn-sm {% if status_filter == 'closed' %}btn-danger{% else %}btn-outline-danger{% endif %}">已关闭</a>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>标题</th>
+                <th>创建者</th>
+                <th>状态</th>
+                <th>题目数</th>
+                <th>回收数</th>
+                <th>创建时间</th>
+                <th>截止时间</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for survey in surveys %}
+            <tr>
+                <td>{{ survey.id }}</td>
+                <td>{{ survey.title }}</td>
+                <td>{{ survey.author.username }}</td>
+                <td>
+                    {% if survey.status == 'draft' %}
+                    <span class="badge bg-secondary">草稿</span>
+                    {% elif survey.status == 'published' %}
+                    <span class="badge bg-success">已发布</span>
+                    {% if survey.end_time and survey.end_time < now %}
+                    <span class="badge bg-warning text-dark">已过期</span>
+                    {% endif %}
+                    {% else %}
+                    <span class="badge bg-danger">已关闭</span>
+                    {% endif %}
+                </td>
+                <td>{{ survey.questions.count() }}</td>
+                <td>{{ survey.responses.count() }}</td>
+                <td>{{ survey.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>{{ survey.end_time.strftime('%Y-%m-%d %H:%M') if survey.end_time else '-' }}</td>
+                <td>
+                    {% if survey.status == 'draft' %}
+                    <form method="POST" action="{{ url_for('admin.publish_survey', survey_id=survey.id) }}" class="d-inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-outline-success">发布</button>
+                    </form>
+                    {% elif survey.status == 'published' %}
+                    <form method="POST" action="{{ url_for('admin.close_survey', survey_id=survey.id) }}" class="d-inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-outline-warning">关闭</button>
+                    </form>
+                    {% endif %}
+                    {% if survey.responses.count() > 0 %}
+                    <a href="{{ url_for('stats.view', survey_id=survey.id) }}" class="btn btn-sm btn-outline-info">统计</a>
+                    {% endif %}
+                    <form method="POST" action="{{ url_for('admin.delete_survey', survey_id=survey.id) }}" class="d-inline" onsubmit="return confirm('确定要删除此问卷吗？所有回答数据也将被删除！')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">删除</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if pagination.pages > 1 %}
+<nav>
+    <ul class="pagination justify-content-center">
+        {% if pagination.has_prev %}
+        <li class="page-item"><a class="page-link" href="?page={{ pagination.prev_num }}&status={{ status_filter }}">上一页</a></li>
+        {% endif %}
+        {% for p in pagination.iter_pages() %}
+        {% if p %}
+        <li class="page-item {% if p == pagination.page %}active{% endif %}">
+            <a class="page-link" href="?page={{ p }}&status={{ status_filter }}">{{ p }}</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">...</span></li>
+        {% endif %}
+        {% endfor %}
+        {% if pagination.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ pagination.next_num }}&status={{ status_filter }}">下一页</a></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

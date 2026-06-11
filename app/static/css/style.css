@@ -1,0 +1,32 @@
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.container.mt-4 {
+    flex: 1;
+}
+
+.survey-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.survey-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.question-card {
+    border-left: 4px solid #0d6efd;
+}
+
+.question-card .card-body {
+    padding: 1.25rem;
+}
+
+.options-container {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 0.5rem;
+}

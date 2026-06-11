@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}统计结果 - {{ survey.title }}{% endblock %}
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2>{{ survey.title }} - 统计结果</h2>
+        <p class="text-muted mb-0">共收集 <strong>{{ total_responses }}</strong> 份回答</p>
+    </div>
+    <div>
+        <a href="{{ url_for('stats.export', survey_id=survey.id, format='csv') }}" class="btn btn-outline-success">导出 CSV</a>
+        <a href="{{ url_for('stats.export', survey_id=survey.id, format='xlsx') }}" class="btn btn-outline-success">导出 Excel</a>
+        <a href="{{ url_for('survey.my_surveys') }}" class="btn btn-secondary">返回</a>
+    </div>
+</div>
+
+{% if total_responses == 0 %}
+<div class="text-center text-muted py-5">
+    <p>暂无回答数据</p>
+</div>
+{% else %}
+
+{% for stat in stats %}
+<div class="card mb-4">
+    <div class="card-body">
+        <h5>
+            {{ loop.index }}. {{ stat.question.question_text }}
+            {% if stat.type == 'single' %}
+            <span class="badge bg-info">单选</span>
+            {% elif stat.type == 'multiple' %}
+            <span class="badge bg-info">多选</span>
+            {% else %}
+            <span class="badge bg-info">文本</span>
+            {% endif %}
+            <small class="text-muted">({{ stat.total }} 份回答)</small>
+        </h5>
+
+        {% if stat.type == 'text' %}
+        <div class="mt-3">
+            {% for text in stat.texts[:20] %}
+            <div class="border-start border-3 border-primary ps-3 mb-2">
+                <p class="mb-0">{{ text }}</p>
+            </div>
+            {% endfor %}
+            {% if stat.texts|length > 20 %}
+            <p class="text-muted">... 还有 {{ stat.texts|length - 20 }} 条回答</p>
+            {% endif %}
+        </div>
+
+        {% else %}
+        <div class="row mt-3">
+            <div class="col-md-7">
+                <canvas id="chart-{{ stat.question.id }}" height="200"></canvas>
+            </div>
+            <div class="col-md-5">
+                <table class="table table-sm">
+                    <thead>
+                        <tr><th>选项</th><th>次数</th><th>占比</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for opt_id, opt_data in stat.option_counts.items() %}
+                        <tr>
+                            <td>{{ opt_data.text }}</td>
+                            <td>{{ opt_data.count }}</td>
+                            <td>{{ "%.1f" | format(opt_data.count / stat.total * 100 if stat.total > 0 else 0) }}%</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}
+
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+{% for stat in stats %}
+{% if stat.type != 'text' %}
+new Chart(document.getElementById('chart-{{ stat.question.id }}'), {
+    type: 'bar',
+    data: {
+        labels: [{% for opt_id, opt_data in stat.option_counts.items() %}{{ opt_data.text | tojson }}{% if not loop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+            label: '选择次数',
+            data: [{% for opt_id, opt_data in stat.option_counts.items() %}{{ opt_data.count }}{% if not loop.last %},{% endif %}{% endfor %}],
+            backgroundColor: [
+                'rgba(54, 162, 235, 0.6)',
+                'rgba(255, 99, 132, 0.6)',
+                'rgba(255, 206, 86, 0.6)',
+                'rgba(75, 192, 192, 0.6)',
+                'rgba(153, 102, 255, 0.6)',
+                'rgba(255, 159, 64, 0.6)'
+            ],
+            borderColor: [
+                'rgba(54, 162, 235, 1)',
+                'rgba(255, 99, 132, 1)',
+                'rgba(255, 206, 86, 1)',
+                'rgba(75, 192, 192, 1)',
+                'rgba(153, 102, 255, 1)',
+                'rgba(255, 159, 64, 1)'
+            ],
+            borderWidth: 1
+        }]
+    },
+    options: {
+        indexAxis: 'y',
+        responsive: true,
+        plugins: {
+            legend: { display: false }
+        },
+        scales: {
+            x: { beginAtZero: true, ticks: { stepSize: 1 } }
+        }
+    }
+});
+{% endif %}
+{% endfor %}
+</script>
+{% endblock %}
